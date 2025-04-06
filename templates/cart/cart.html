@@ -1,0 +1,235 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block title %}Cart{% endblock title %} 
+{% block main %}
+	<!-- section -->
+	<div class="section">
+		<!-- container -->
+		<div class="container">
+			<!-- row -->
+			<div class="row">
+				<div class="clearfix" style="margin-top: 30px;">
+					<div class="col-md-12">
+						<div class="order-summary clearfix">
+							<div class="section-title text-center">
+								<h3 class="title text-center">Carts Review</h3>
+							</div>
+							<table class="shopping-cart-table table">
+								<thead>
+									<tr>
+										<th>Product</th>
+										<th></th>
+										<th class="text-center">Price</th>
+										<th class="text-center">Quantity</th>
+										<th class="text-center">Total</th>
+										<th class="text-right">Remove</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% if cart_items %}
+										{% for cart_item in cart_items %}
+											<tr>
+												<td class="thumb">
+													{% if cart_item.product.products_images.first.image %}
+													<img src="{{cart_item.product.products_images.first.image.url}}" alt="">
+													{% else %}
+													<img src="{% static "img/no-image.jpg" %}" alt="">
+													{% endif %}
+												</td>
+												<td class="details">
+													<a href="#">{{cart_item.product.title}}</a>
+													<ul>
+														<li><span>Size: {% if cart_item.variant.size %}{{cart_item.variant.size}}  {% else %} No Size {% endif %} </span></li>
+														<li><span>Color: {% if cart_item.variant.color %}{{cart_item.variant.color}} {% else %} No Color {% endif %}</span></li>
+													</ul>
+												</td>
+												<td class="price text-center">
+													<strong>
+														{% if cart_item.product.product_variants.exists %}
+														$ {{cart_item.product.product_variants.first.price}}
+														{% else %}
+														$ {{cart_item.product.price}}
+														{% endif %}
+													</strong>
+													<br>
+													{% if cart_item.product.old_price %}
+													<del class="font-weak"><small>$ {{cart_item.product.old_price}}</small></del>
+													{% endif %}
+												</td>
+												<td class="qty text-center">
+													<button class="btn btn-sm btn-outline-secondary decrease-qty" data-id="{{ cart_item.id }}"><i class="fa fa-minus"></i></button>
+													<span class="quantity" data-id="{{ cart_item.id }}"> {{ cart_item.quantity }} </span>
+													<button class="btn btn-sm btn-outline-secondary increase-qty" data-id="{{ cart_item.id }}"><i class="fa fa-plus"></i></button>
+												</td>
+
+												<td class="total text-center">
+													<strong class="primary-color" data-id="{{ cart_item.id }}">
+														$ {{ cart_item.total_price_of_items }}
+													</strong>
+												</td>
+												
+												<!-- Remove Item Button -->
+												<td class="text-right">
+													<button class="main-btn icon-btn btn-remove" data-id="{{ cart_item.id }}">
+														<i class="fa fa-trash"></i>
+													</button>
+												</td>
+											</tr>
+										{% endfor %}
+									{% endif %}
+								</tbody>
+								<tfoot>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>COUPON</th>
+										<th colspan="2" class="coupon-form">
+											<form method="POST" id="coupon-form" class="form-inline">
+												<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+												<input type="text" class="form-control" placeholder="Coupon Code" name="coupon_code" id="coupon_code">
+												<button type="submit" class="primary-btn">
+													<i class="fa-solid fa-arrow-right-from-bracket"></i> Apply
+												</button>
+											</form>
+										</th>
+									</tr>
+								</tfoot>
+								<tfoot>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>SUBTOTAL</th>
+										<th colspan="2" class="cart-totals">$ {{cart_totals}}</th>
+									</tr>	
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>SHIPING</th>
+										<td colspan="2">$ 150 </td>
+									</tr>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>TOTAL</th>
+										<th colspan="2" class="payable-price">$ {{payable_price}}</th>
+									</tr>
+								</tfoot>
+							</table>
+							<div class="pull-right">
+								<a href="{% url "checkout" %}" class="primary-btn">Place Order</a>
+							</div>
+						</div>
+
+					</div>
+				</div>
+			</div>
+			<!-- /row -->
+		</div>
+		<!-- /container -->
+	</div>
+	<!-- /section -->
+
+{% endblock main %}
+{% block extra_scripts %}
+<script>
+	$(document).ready(function(){
+		// Increase or decrease quantity
+		$(document).on("click", ".increase-qty, .decrease-qty", function () {
+            let id = $(this).data("id");
+            let action = $(this).hasClass("increase-qty") ? "increase" : "decrease";
+
+            $.ajax({
+                url: "{% url 'qtyincdec' %}",  // Adjust this URL based on your Django URL name
+                method: "POST",
+				headers: {
+					"X-CSRFToken": $('input[name=csrfmiddlewaretoken]').val(),
+				},
+                data: JSON.stringify({"id": id, "action": action}),
+				contentType: "application/json",
+				dataType: "json",
+				success: function (res) {
+					if (res.status == 200) {
+						$("span.quantity[data-id='" + res.id + "']").text(res.quantity);
+						$("strong.primary-color[data-id='" + res.id + "']").text("$ " + res.item_total_price);	
+						$(".cart-totals").text("$ " + res.cart_totals);
+						$(".payable-price").text("$ " + res.payable_price);
+						$(".cart-count").text(res.cart_count);
+
+						$('.cart-items-ajax').load(location.href + ' .cart-items-ajax')
+						alertify.success(res.messages)	
+					}
+					else if (res.status == 400) {
+						alertify.error(res.messages);
+					}
+				}
+				
+            });
+        });
+		// Increase or decrease quantity
+
+		// Remove item from cart
+		$(document).on("click", ".btn-remove", function(){
+			let id = $(this).data("id");
+			let row = $(this).closest("tr");
+
+			$.ajax({
+				url: "{% url 'removetocart' %}",  // Ensure this URL is correctly mapped in Django
+				method: "POST",
+				headers: {
+					"X-CSRFToken": $('input[name=csrfmiddlewaretoken]').val(),
+				},
+				data: JSON.stringify({"id": id}),
+				contentType: "application/json",
+				dataType: "json",
+				success: function(res){
+					if(res.status == 200){
+						row.fadeOut(300, function(){ $(this).remove(); });
+						$("strong.primary-color[data-id='" + res.id + "']").text("$ " + res.item_total_price);
+						$(".cart-total-price").text("$ " + res.cart_total);
+						$(".cart-totals").text("$ " + res.cart_totals);
+						$(".payable-price").text("$ " + res.payable_price);
+						$(".cart-count").text(res.cart_count);
+
+
+						$('.cart-items-ajax').load(location.href + ' .cart-items-ajax')
+						alertify.success(res.messages);
+					}
+					else if (res.status == 400) {
+						alertify.error(res.messages);
+					}
+				}
+			});
+
+		});
+		// Remove item from cart
+
+		// Apply coupon
+		$(document).on("submit", "#coupon-form", function(e){
+			e.preventDefault();
+			let coupon_code = $("#coupon_code").val();
+			let csrfmiddlewaretoken = $('input[name=csrfmiddlewaretoken]').val();
+
+			$.ajax({
+				url: "{% url 'couponapplyview' %}",
+				method: "POST",
+				headers: {
+					"X-CSRFToken": csrfmiddlewaretoken,
+				},
+				data: JSON.stringify({"coupon_code": coupon_code}),
+				contentType: "application/json",
+				dataType: "json",
+				success: function(res){
+					if(res.status == 200){
+						$('.cart-totals').text("$ " + res.cart_totals);
+						$('.payable-price').text("$ " + res.payable_price);
+
+						$('.cart-items-ajax').load(location.href + ' .cart-items-ajax')
+						alertify.success(res.messages);
+					}
+					else if (res.status == 400) {
+						alertify.error(res.messages);
+					}
+				}
+			});
+		});
+		// Apply coupon
+
+	});
+</script>
+{% endblock extra_scripts %}

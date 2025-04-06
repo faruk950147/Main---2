@@ -1,0 +1,213 @@
+{% extends 'base.html' %} 
+{% load static %} 
+{% block title %}Checkout{% endblock title %} 
+{% block main %}
+
+	<!-- section -->
+	<div class="section">
+		<!-- container -->
+		<div class="container">
+			<!-- row -->
+			<div class="row">
+				<form id="checkoutForm" class="clearfix">
+					<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+					<div class="col-md-5">
+						<div class="billing-details">
+							<div class="section-title">
+								<h3 class="title">Billing Details</h3>
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="full_name" id="id_full_name" placeholder="Full Name">
+							</div>
+							<div class="form-group">
+								<input class="input" type="email" name="email" id="id_email" placeholder="Email">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="country" id="id_country" placeholder="Country">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="city" id="id_city" placeholder="City">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="home_city" id="id_home_city"  placeholder="Home City">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="zip_code" id="id_zip_code" placeholder="Zip Code">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="phone" id="id_phone" placeholder="Phone">
+							</div>
+							<div class="form-group">
+								<input class="input" type="text" name="address" id="id_address" placeholder="Address">
+							</div>
+							<div class="form-group">
+								<label for="payment_method">Select Payment Method:</label>
+								<select name="payment_method" id="id_payment_method" class="form-control" required>
+									{% for value, label in payment_methods %}
+										<option value="{{ value }}">{{ label }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="form-group">
+								<button type="submit" class="form-control primary-btn">Place Order</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="col-md-7">
+						<div class="order-summary clearfix">
+							<div class="section-title">
+								<h3 class="title">Order Review</h3>
+							</div>
+							<table class="shopping-cart-table table">
+								<thead>
+									<tr>
+										<th>Product</th>
+										<th></th>
+										<th class="text-center">Quantity</th>
+										<th class="text-center">Total</th>
+										<th class="text-right"></th>
+									</tr>
+								</thead>
+								<tbody>
+									{% if cart_items %}
+									{% for cart_item in cart_items %}
+										<tr>
+											<td class="thumb">
+												{% if cart_item.product.products_images.first.image %}
+												<img src="{{cart_item.product.products_images.first.image.url}}" alt="">
+												{% else %}
+												<img src="{% static "img/no-image.jpg" %}" alt="">
+												{% endif %}
+											</td>
+											<td class="details">
+												<a href="#">{{ cart_item.product.title|title }}</a>
+												<ul>
+													<li><span>Size: {% if cart_item.variant.size %}{{cart_item.variant.size}}  {% else %} No Size {% endif %} </span></li>
+													<li><span>Color: {% if cart_item.variant.color %}{{cart_item.variant.color}} {% else %} No Color {% endif %}</span></li>
+												</ul>
+											</td>
+											<td class="qty text-center"><input class="input" disabled type="text" value="{{cart_item.quantity}}"></td>
+											<td class="total text-center"><strong class="primary-color">
+												{{cart_item.total_price_of_items}}
+											</strong></td>
+						
+										</tr>
+									{% endfor %}
+									{% endif %}
+								</tbody>
+								<tfoot>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>SUBTOTAL</th>
+										<th colspan="2" class="sub-total">$ {{ cart_totals|floatformat:2 }}</th>
+									</tr>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>SHIPING</th>
+										<td colspan="2">150</td>
+									</tr>
+									<tr>
+										<th class="empty" colspan="3"></th>
+										<th>TOTAL</th>
+										<th colspan="2" class="total">$ {{payable_price|floatformat:2}}</th>
+									</tr>
+								</tfoot>
+							</table>
+						</div>
+					</div>
+				</form>
+			</div>
+			<!-- /row -->
+			 <div class="row">
+				<div class="col-md-5" >
+					<div id="PaypalForm" style="display: none;">
+					</div>
+				</div>
+			 </div>
+		</div>
+		<!-- /container -->
+	</div>
+	<!-- /section -->
+
+
+{% endblock main %}
+{% block extra_scripts %}
+<script>
+    $(document).ready(function(){
+        $(document).on("submit", "#checkoutForm", function(e) {
+            e.preventDefault();
+            let formData = {
+                full_name: $("#id_full_name").val(),
+                email: $("#id_email").val(),
+                country: $("#id_country").val(),
+                city: $("#id_city").val(),
+                home_city: $("#id_home_city").val(),
+                zip_code: $("#id_zip_code").val(),
+                phone: $("#id_phone").val(),
+                address: $("#id_address").val(),
+                payment_method: $("#id_payment_method").val(),
+            };
+
+			if(formData.full_name && formData.email && formData.country && formData.city && formData.home_city && formData.zip_code && formData.phone && formData.address && formData.payment_method && formData.payment_method === "Paypal") {
+				$.ajax({
+					url: "{% url 'checkout' %}",
+					method: "POST",
+					headers: {
+						"X-CSRFToken": $('input[name=csrfmiddlewaretoken]').val(),
+					},
+					data: JSON.stringify(formData),
+					contentType: "application/json",
+					dataType: "json",
+					success: function(res) {
+						if(res.status == 200 && res.form) {
+							if (res.form) {
+								$("#PaypalForm").html(res.form);
+								$("#PaypalForm").show();
+							} 
+						} 
+						else if (res.status == 400) {
+							alertify.error(res.messages);
+							console.log(res);
+						}
+					},
+					error: function(err) {
+						console.log(err.responseJSON);
+						alertify.error("Something went wrong!");
+					}
+				});
+			}
+			else if(formData.full_name && formData.email && formData.country && formData.city && formData.home_city && formData.zip_code && formData.phone && formData.address &&formData.payment_method && formData.payment_method === "Cash") {
+				$.ajax({
+					url: "{% url 'checkout' %}",
+					method: "POST",
+					headers: {
+						"X-CSRFToken": $('input[name=csrfmiddlewaretoken]').val(),
+					},
+					data: JSON.stringify(formData),
+					contentType: "application/json",
+					dataType: "json",
+					success: function(res) {
+						if(res.status == 200) {
+							alertify.success(res.messages);
+							window.location.href = "/";
+						} 
+						else if (res.status == 400) {
+							alertify.error(res.messages);
+							console.log(res);
+						}
+					},
+					error: function(err) {
+						console.log(err.responseJSON);
+						alertify.error("Something went wrong!");
+					}
+				});
+			}
+			else {
+				alertify.error("Please fill all required fields!");
+			}
+        });
+    });
+</script>
+
+{% endblock extra_scripts %}

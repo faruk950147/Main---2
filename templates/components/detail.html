@@ -1,0 +1,184 @@
+{% load static %}
+<!-- section -->
+<div class="section">
+    <!-- container -->
+    <div class="container">
+        <!-- row -->
+        <div class="row">
+            <!--  Product Details -->
+            <div class="product product-details clearfix">
+                <div class="col-md-6">
+
+                    <input type="hidden" name="product_id" id="product_id" value="{{ product.id }}">
+                    <div id="product-main-view">
+                        <div class="product-view" style="width: 400px; height: 450px;">
+                            {% if product.products_images.first.image %}
+                                <img id="main-product-image" src="{{ product.products_images.first.image.url }}" alt="" style="width: 100%; height: 100%;">
+                            {% else %}
+                                <img id="main-product-image" src="{% static 'img/no-image.jpg' %}" alt="" style="width: 100%; height: 100%;">
+                            {% endif %}
+                        </div>
+                    
+                        {% if product.products_images.exists %}
+                            {% for images in product.products_images.all %}
+                                <div class="product-view">
+                                    {% if images.image %}
+                                        <img id="gallery-image" src="{{ images.image.url }}" alt="" style="width: 100%; height: 100%;">
+                                    {% else %}
+                                        <img id="gallery-image" src="{% static 'img/no-image.jpg' %}" alt="" style="width: 100%; height: 100%;">
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>                 
+
+                    <div id="product-view">
+                        <div class="product-view">
+                            {% if product.products_images.first.image %}
+                                <img id="main-product-image" src="{{ product.products_images.first.image.url }}" alt="" style="width: 100%; height: 100%;">
+                            {% else %}
+                                <img id="main-product-image" src="{% static 'img/no-image.jpg' %}" alt="" style="width: 100%; height: 100%;">
+                            {% endif %}
+                        </div>
+                        
+                        {% if product.products_images.exists %}
+                            {% for images in product.products_images.all %}
+                            <div class="product-view">
+                                {% if images.image %}
+                                    <img class="gallery-image" src="{{images.image.url}}" alt="" style="width: 100%; height: 100%;">
+                                {% else %}
+                                    <img class="gallery-image" src="{% static 'img/no-image.jpg' %}" alt="" style="width: 100%; height: 100%;">
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                </div>
+                <div class="col-md-6">
+
+                    <div class="product-body">
+                        {% if product.discount %}
+                        <div class="product-label">
+                            {% if product.discount_title %}
+                            <span>{{product.discount_title}}</span>
+                            <span class="sale">{{product.discount}}%</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        <h2 class="product-name">{{product.title|title}}</h2>
+                        <div>
+                        <div class="product-rating reviews_total_avg">
+                            <i class="fa fa-star{% if product.average_review < 1%}-o empty{% endif%}"></i>
+                            <i class="fa fa-star{% if product.average_review < 2%}-o empty{% endif%}"></i>
+                            <i class="fa fa-star{% if product.average_review < 3%}-o empty{% endif%}"></i>
+                            <i class="fa fa-star{% if product.average_review < 4%}-o empty{% endif%}"></i>
+                            <i class="fa fa-star{% if product.average_review < 5%}-o empty{% endif%}"></i>
+                            {{product.average_review|stringformat:".2f"}}
+                        </div>
+                        <div class="review_count_total" style="margin-bottom: 10px;">
+                            <a class="review_count" data-toggle="tab" href="#tab4">{{product.count_review}} Review(s)/<a href="#tab4" data-toggle="tab">Add Review</a></a>
+                        </div>
+
+                        {% if product.in_stock and product.in_stock_max >= 1 %}
+                        <p>Availability: {{product.available_in_stock_msg}}</p>
+                        {% endif %}
+                        <p>Category: {{product.category.title|title}}</p>
+                        <p>Brand: {{product.brand.title|title}}</p>
+                        <p>Model: {{product.model|title}}</p>
+                        <p>Keyword: {{product.keyword|title}}</p>
+                        <p class="selected-size">Selected Size: {{selected_size_title}}</p>
+                        <p class="selected-color">Selected Color: {{selected_color_title}}</p>
+                        <p class="product-price">
+                            Main Price: 
+                            {% if product.product_variants.exists %}
+                                {{ product.product_variants.first.price }}
+                            {% else %}
+                                {{ product.price }}
+                            {% endif %}
+                        </p>
+                        
+
+                        <div class="product-options">
+                            {% comment %} Add to Cart Form component completed  just create the view {% endcomment %}
+                            <form action="" method="POST" id="addToCartForm">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                
+                                {% if product.variant == "Sizes-Colors" or product.variant == "Sizes" or product.variant == "Colors" %}
+                                    <input type="hidden" id="selected_size_id" value="{{ selected_size_id }}">
+                                    <input type="hidden" id="selected_color_id" value="{{ selected_color_id }}">
+                            
+                                    {% if unique_sizes or unique_colors %}
+                                        <!-- Size Selection -->
+                                        <div class="size-option" style="margin-bottom: 20px;">
+                                            <div class="size-variant">
+                                                <label for="size-select" class="text-uppercase">Size:</label>
+                                                {% if unique_sizes %}
+                                                    <select class="size-select" id="size-select">
+                                                        <option value="">Choose a size</option>
+                                                        {% for size_id, size in unique_sizes.items %}
+                                                            <option value="{{ size_id }}" {% if size_id == selected_size_id %}selected{% endif %}>
+                                                                {{ size.size.title }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                {% else %}
+                                                    <span class="text-uppercase">No size available</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                            
+                                        <!-- Color Selection -->
+                                        <div class="color-option" style="width: 100%; display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                                            <span class="text-uppercase">Color:</span>
+                                            {% if unique_colors %}
+                                                <div class="color-variant" style="width: 100%; display: flex; flex-wrap: wrap; gap: 10px;">
+                                                    {% for color_id, color in unique_colors.items %}
+                                                        <div class="color" data-title="{{ color.color.title }}" style="display: flex; flex-direction: column; align-items: center;">
+                                                            <input type="radio" name="color-select" id="color-select{{ color_id }}" value="{{ color_id }}"
+                                                                {% if color_id == selected_color_id %}checked{% endif %}>
+                                                            <label for="color-select{{ color_id }}" style="background-color:{{ color.color.code }}; width: 20px; height: 20px; border-radius: 50%; cursor: pointer;"></label>
+                                                            <div class="variant-img">
+                                                                <img class="thumb" src="{{ color.image }}" alt="{{ color.color.title }}" width="50">
+                                                            </div>
+                                                            <span>{{ color.color.title }} (${{ color.price }})</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="text-uppercase">No color available</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="title" style="color: red;">No variant available</p>
+                                {% endif %}
+                            
+                                <div class="product-price" style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                                    {% if product.product_variants.exists %}
+                                        <h3 class="product-price selected-price-main">$ {{ product.product_variants.first.price }}</h3>
+                                    {% else %}
+                                        <h3 class="product-price selected-price-main">$ {{ product.price }}</h3>
+                                    {% endif %}
+                                    {% if product.old_price %}
+                                        <h3 class="product-price"> <del class="product-old-price">$ {{ product.old_price }}</del> </h3>
+                                    {% endif %}
+                                </div>
+                            
+                                <div class="qty-input" style="margin-top: 15px;">
+                                    <span class="text-uppercase">QTY: </span>
+                                    <input class="quantity input" name="quantity" type="number" value="1" min="1"
+                                           max="{% if product.product_variants.first %}{{ product.product_variants.first.quantity }}{% else %}{{ product.in_stock_max }}{% endif %}">
+                                    <button type="submit" class="primary-btn add-to-cart">
+                                        <i class="fa fa-shopping-cart"></i> Add to Cart
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- section -->
