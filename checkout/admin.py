@@ -5,7 +5,7 @@ from checkout.models import Checkout, CheckoutItem
 # Register your models here.
 
 class CheckoutAdmin(ModelAdmin):
-    list_display = ['id', 'user', 'status', 'payment_method', 'total', 'shipping_date', 'payment', 'payment_id', 'tracking_no', 'created_date', 'updated_date']
+    list_display = ['id', 'user', 'status', 'payment_method', 'total', 'shipping_date', 'payment', 'payment_id', 'invoice_d', 'tracking_no', 'created_date', 'updated_date']
     list_editable = ['status', 'payment', 'shipping_date']
     
 admin.site.register(Checkout, CheckoutAdmin)
